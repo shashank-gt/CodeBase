@@ -4,15 +4,14 @@ CBQA is an AI-powered repository analysis and question-answering platform that h
 
 ## Key Features
 
-* AI-powered codebase understanding
-* GitHub repository and local project analysis
-* Hybrid retrieval using semantic search and keyword search
-* Intelligent query expansion for improved answer quality
-* Optional AI reranking for higher retrieval accuracy
-* Interactive repository explorer and architecture visualization
-* Repository summarization and technical insights
-* Multi-turn conversational codebase Q&A
-* OpenAI and local LLM support
+* **AI-Powered Codebase Understanding**: Deep semantic analysis of code structure, logic, and context.
+* **Dual-Engine High-Availability LLM**: Dual-engine architecture featuring Groq (`llama-3.3-70b-versatile`) and Gemini (`gemini-2.5-flash` via the modern `google-genai` SDK) with robust, automatic bidirectional failover backup mechanisms.
+* **Hybrid Retrieval System**: Combines semantic vector database search (ChromaDB) and exact keyword search (BM25) for ultimate recall.
+* **Repository Metadata Disk Cache**: Implements standard local JSON-based persistence to automatically recover repository analysis meta across server restarts.
+* **Dynamic Connection Detection**: Automatically resolves the active backend host dynamically (`window.location.origin`) with local `file://` launcher fallbacks to run perfectly under any staging, cloud VPS, or local deployment port.
+* **Smooth Progressive UI**: Progressive drag-scrolling chatbot text rendering for natural conversation pacing (eliminating page snaps) combined with clean typography.
+* **Intelligent Query Expansion & Reranking**: Advanced RAG workflow using HyDE (Hypothetical Document Embeddings) and Cohere AI Reranking to deliver optimal context.
+* **Interactive Repository Explorer**: Complete files viewer, dependency visualizer, and custom architectural flow mapping.
 
 ## How It Works
 
@@ -32,22 +31,25 @@ CBQA is an AI-powered repository analysis and question-answering platform that h
 * ChromaDB
 * BM25 Retrieval
 * Sentence Transformers
-* OpenAI API
-* Ollama
+* Google GenAI SDK (Gemini)
+* Groq Cloud API
+* Ollama (Local LLM capability)
+* JSON Metadata Disk-Persistence Cache
 
 ### AI & Retrieval
 
 * Hybrid Search (Vector + Keyword)
-* Query Expansion
+* Query Expansion (HyDE)
 * Reciprocal Rank Fusion (RRF)
-* AI Reranking
+* Cohere AI Reranking
 * Retrieval-Augmented Generation (RAG)
 
 ### Frontend
 
-* Interactive Repository Explorer
-* Chat-Based Code Assistant
-* Architecture & Flow Visualization
+* Clean Vanilla CSS Sleek Design
+* Interactive Repository Explorer & Source Code Viewer
+* Progressive Smooth-Scrolling Chat Assistant
+* Architecture & Flow Diagrams (Mermaid.js integration)
 
 ## Available Capabilities
 
@@ -62,15 +64,16 @@ CBQA is an AI-powered repository analysis and question-answering platform that h
 
 ## API Endpoints
 
-| Endpoint          | Purpose                                |
-| ----------------- | -------------------------------------- |
-| `/analyze-repo`   | Analyze and index a repository         |
-| `/ask`            | Ask questions about the codebase       |
-| `/repo-structure` | View repository structure and metadata |
-| `/summarize`      | Generate repository summaries          |
-| `/stats`          | View indexing and cache statistics     |
-| `/health`         | Service health status                  |
-| `/clear`          | Clear indexed data                     |
+| Endpoint          | Method | Purpose                                |
+| ----------------- | ------ | -------------------------------------- |
+| `/analyze-repo`   | POST   | Analyze and index a repository         |
+| `/ask`            | POST   | Ask questions about the codebase       |
+| `/repo-structure` | GET    | View repository structure and metadata |
+| `/file-content`   | GET    | View contents of a specific file       |
+| `/summarize`      | POST   | Generate repository summaries          |
+| `/stats`          | GET    | View indexing and cache statistics     |
+| `/health`         | GET    | Service health & LLM status            |
+| `/clear`          | DELETE | Clear indexed data and disk cache      |
 
 ## Use Cases
 
