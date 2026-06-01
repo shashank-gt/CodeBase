@@ -55,17 +55,3 @@ def clear():
 def db_stats():
     try: return {"total_chunks": get_col().count(), "collection": COLL}
     except Exception: return {"total_chunks": 0, "collection": COLL}
-
-def get_all_chunks() -> List[Dict]:
-    try:
-        col = get_col()
-        n = col.count()
-        if n == 0:
-            return []
-        res = col.get(include=["documents", "metadatas"])
-        if not res or not res.get("documents"):
-            return []
-        return [{"text": d, "metadata": m} for d, m in zip(res["documents"], res["metadatas"])]
-    except Exception as e:
-        logger.error(f"Failed to retrieve chunks from ChromaDB: {e}")
-        return []

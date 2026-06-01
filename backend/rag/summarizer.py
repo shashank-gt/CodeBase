@@ -17,22 +17,42 @@ Format your response EXACTLY like this:
 ## 📊 Architecture
 
 ```mermaid
-graph TD
-    A["Component"] --> B["Component"]
+graph TB
+    subgraph Client["Client Layer"]
+        A["Browser/CLI"]
+    end
+    subgraph API["API Layer"]
+        B["Routes/Endpoints"]
+    end
+    subgraph Core["Core Logic"]
+        C["Business Logic"]
+        D["Data Processing"]
+    end
+    subgraph Storage["Storage Layer"]
+        E["Database"]
+        F["Cache"]
+    end
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    C -.-> F
 ```
 
-Show the HIGH-LEVEL architecture as a Mermaid diagram. Use simple node IDs (A, B, C).
-Put labels in ["double quotes"]. No special characters in labels.
-Show how the major components connect and data flows.
+Show the HIGH-LEVEL architecture as a Mermaid diagram.
+CRITICAL: Use graph TB with subgraph blocks to group nodes into layers.
+Use simple node IDs (A, B, C). Put labels in ["double quotes"].
+No special characters in labels (no colons, backslashes, parentheses).
+Do NOT add style/classDef lines. Map nodes to actual project components.
 
 ## 🌳 Key Components
 For each major component:
-- **Component Name** — What it does and WHY it exists (1 sentence)
+- **Component Name** — What it does and WHY it exists (1 sentence). Cite [file:line].
 
 ## 🔄 Main Data Flow
 Show the primary execution flow:
-1. **Input** → What triggers the system
-2. **Processing** → Key processing steps
+1. **Input** → What triggers the system [file:line]
+2. **Processing** → Key processing steps with specific function names
 3. **Output** → What the user gets
 
 ## ⚙ Tech Stack & Dependencies
@@ -41,10 +61,10 @@ Show the primary execution flow:
 ## 🚀 Senior Engineer Assessment
 
 ### Strengths
-- What's well-designed (be specific)
+- What's well-designed — be specific about which patterns and why
 
 ### Areas for Improvement
-- Concrete suggestions for the architecture
+- Concrete suggestions for the architecture with file references
 
 ### Scalability Notes
 - What would need to change at scale
@@ -52,6 +72,7 @@ Show the primary execution flow:
 ## 🧾 One-Line Summary
 One sentence that captures the essence of this project.
 """
+
 
 def summarize_repo(files: List[Dict]) -> str:
     if not files:

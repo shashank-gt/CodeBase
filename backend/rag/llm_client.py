@@ -1,8 +1,6 @@
 """
-LLM client: supports Gemini, Groq, and local Ollama.
-Provides robust safety fallbacks and high-performance execution.
-Uses the modern Google GenAI SDK for Gemini.
-Includes automatic bidirectional fallback (Groq <-> Gemini) as a backup system.
+LLM client: supports Gemini (primary) and local Ollama.
+Removed OpenAI as per user request to prevent unwanted fallback quota errors.
 """
 import logging
 from typing import List, Dict
@@ -12,175 +10,76 @@ logger = logging.getLogger(__name__)
 
 # ── Lazy-loaded clients ───────────────────────────────────────────────────────
 
-_gemini_client = None
-_groq_client = None
+_gemini_model = None
 
 
-def _get_gemini_client():
-    global _gemini_client
-    if _gemini_client is None:
-        from google import genai
+def _get_gemini():
+    global _gemini_model
+    if _gemini_model is None:
+        import google.generativeai as genai
         if not settings.GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY not set in .env")
-        _gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
-    return _gemini_client
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        _gemini_model = genai
+    return _gemini_model
 
 
-def _get_groq():
-    global _groq_client
-    if _groq_client is None:
-        from groq import Groq
-        if not settings.GROQ_API_KEY:
-            raise ValueError("GROQ_API_KEY not set in .env")
-        _groq_client = Groq(api_key=settings.GROQ_API_KEY)
-    return _groq_client
-
-
-# ── Main entry point with backup fallback ─────────────────────────────────────
+# ── Main entry point ──────────────────────────────────────────────────────────
 
 def call_llm(messages: List[Dict]) -> str:
-    """
-    Call the configured LLM (Gemini, Groq, or local Ollama).
-    Provides automatic fallback to the backup provider (Gemini <-> Groq)
-    if the primary provider encounters an exception and both keys are set.
-    """
+    """Call the configured LLM (Gemini or Ollama)."""
     provider = settings.LLM_PROVIDER
 
     try:
         if provider == "gemini":
             return _gemini_call(messages)
-        elif provider == "groq":
-            return _groq_call(messages)
         else:
             return _ollama_call(messages)
     except Exception as e:
-        logger.warning(f"Primary LLM provider ({provider}) failed: {e}")
-        
-        # ── Automatic Backup Fallback Mechanism ──
-        if provider == "groq" and settings.GEMINI_API_KEY:
-            logger.info("Attempting automatic fallback to Gemini backup provider...")
-            try:
-                # Add a notice about the fallback to log output
-                res = _gemini_call(messages)
-                logger.info("Successfully recovered using Gemini backup provider!")
-                return res
-            except Exception as gemini_err:
-                logger.error(f"Fallback to Gemini also failed: {gemini_err}")
-                raise e
-        elif provider == "gemini" and settings.GROQ_API_KEY:
-            logger.info("Attempting automatic fallback to Groq backup provider...")
-            try:
-                # Add a notice about the fallback to log output
-                res = _groq_call(messages)
-                logger.info("Successfully recovered using Groq backup provider!")
-                return res
-            except Exception as groq_err:
-                logger.error(f"Fallback to Groq also failed: {groq_err}")
-                raise e
-        
-        # Re-raise the original error if no fallback was possible or configured
-        logger.error(f"LLM call failed ({provider}) and no backup fallback was available.")
+        logger.error(f"LLM call failed ({provider}): {e}")
         raise
 
 
-# ── Gemini (Modern SDK) ───────────────────────────────────────────────────────
+# ── Gemini ────────────────────────────────────────────────────────────────────
 
-def _gemini_call(messages: List[Dict]) -> str:
-    client = _get_gemini_client()
-    from google.genai import types
+def _gemini_call(messages):
+    genai = _get_gemini()
 
-    contents = []
-    system_instruction = None
+    # Extract system instruction and user/assistant messages
+    system_parts = []
+    chat_messages = []
 
     for m in messages:
-        role = m.get("role", "user")
-        content = m.get("content", "")
+        if m["role"] == "system":
+            system_parts.append(m["content"])
+        elif m["role"] == "user":
+            chat_messages.append({"role": "user", "parts": [m["content"]]})
+        elif m["role"] == "assistant":
+            chat_messages.append({"role": "model", "parts": [m["content"]]})
 
-        if role == "system":
-            system_instruction = content
-        elif role == "user":
-            contents.append(types.Content(
-                role="user",
-                parts=[types.Part.from_text(text=content)]
-            ))
-        elif role == "assistant":
-            contents.append(types.Content(
-                role="model",
-                parts=[types.Part.from_text(text=content)]
-            ))
+    # Create model with system instruction if available
+    system_instruction = "\n\n".join(system_parts) if system_parts else None
 
-    # Ensure we have at least one content
-    if not contents:
-        contents.append(types.Content(
-            role="user",
-            parts=[types.Part.from_text(text="Hello")]
-        ))
-
-    config = types.GenerateContentConfig(
-        temperature=settings.LLM_TEMPERATURE,
-        max_output_tokens=settings.LLM_MAX_TOKENS,
-        system_instruction=system_instruction
+    model = genai.GenerativeModel(
+        model_name=settings.GEMINI_MODEL,
+        system_instruction=system_instruction,
+        generation_config={
+            "temperature": settings.LLM_TEMPERATURE,
+            "max_output_tokens": settings.LLM_MAX_TOKENS,
+        },
     )
 
-    try:
-        response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=contents,
-            config=config
-        )
-        if response.text:
-            return response.text
-        
-        # Check safety/block feedback if text is empty
-        if response.candidates and len(response.candidates) > 0:
-            candidate = response.candidates[0]
-            if hasattr(candidate, "finish_reason") and candidate.finish_reason:
-                if str(candidate.finish_reason) not in ("FinishReason.STOP", "STOP"):
-                    raise ValueError(f"Gemini call ended with finish reason: {candidate.finish_reason}")
-            if hasattr(candidate, "content") and candidate.content.parts:
-                return candidate.content.parts[0].text
-        raise ValueError("Gemini returned an empty response. Verify API key and safety limits.")
-    except Exception as e:
-        logger.error(f"Gemini API failure: {e}")
-        raise
+    # Ensure we have at least one user message
+    if not chat_messages:
+        chat_messages = [{"role": "user", "parts": ["Hello"]}]
 
-
-# ── Groq ──────────────────────────────────────────────────────────────────────
-
-def _groq_call(messages: List[Dict]) -> str:
-    client = _get_groq()
-
-    # Format messages to comply with OpenAI/Groq standard roles (system, user, assistant)
-    formatted_messages = []
-    for m in messages:
-        role = m["role"]
-        if role not in ("system", "user", "assistant"):
-            role = "user"
-        formatted_messages.append({
-            "role": role,
-            "content": m["content"]
-        })
-
-    try:
-        completion = client.chat.completions.create(
-            model=settings.GROQ_MODEL,
-            messages=formatted_messages,
-            temperature=settings.LLM_TEMPERATURE,
-            max_tokens=settings.LLM_MAX_TOKENS,
-        )
-        if completion.choices and len(completion.choices) > 0:
-            content = completion.choices[0].message.content
-            if content:
-                return content
-        raise ValueError("Groq returned an empty response.")
-    except Exception as e:
-        logger.error(f"Groq API failure: {e}")
-        raise
+    response = model.generate_content(chat_messages)
+    return response.text
 
 
 # ── Ollama (local) ────────────────────────────────────────────────────────────
 
-def _ollama_call(messages: List[Dict]) -> str:
+def _ollama_call(messages):
     import requests
     url = f"{settings.LOCAL_LLM_URL}/v1/chat/completions"
     try:

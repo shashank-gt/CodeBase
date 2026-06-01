@@ -34,46 +34,8 @@ os.makedirs(settings.REPO_TEMP_DIR, exist_ok=True)
 # Frontend directory
 _frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend")
 
-CACHE_FILE = os.path.join(settings.CHROMA_DIR, "repo_cache.json")
-
 _repo_files: List[Dict] = []
 _repo_meta:  Dict = {}
-
-
-def save_repo_cache():
-    import json
-    try:
-        os.makedirs(settings.CHROMA_DIR, exist_ok=True)
-        with open(CACHE_FILE, "w", encoding="utf-8") as f:
-            json.dump({
-                "repo_meta": _repo_meta,
-                "repo_files": _repo_files
-            }, f, indent=2, ensure_ascii=False)
-        logger.info("Saved repository metadata to disk cache.")
-    except Exception as e:
-        logger.error(f"Failed to save repo cache: {e}")
-
-
-@app.on_event("startup")
-def load_repo_cache_startup():
-    global _repo_files, _repo_meta
-    if os.path.exists(CACHE_FILE):
-        import json
-        try:
-            with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                _repo_meta = data.get("repo_meta", {})
-                _repo_files = data.get("repo_files", [])
-            logger.info("Loaded repository metadata from disk cache.")
-            
-            # Rebuild BM25 index from chunks on startup
-            from backend.rag.vectorstore import get_all_chunks
-            chunks = get_all_chunks()
-            if chunks:
-                bm25_index.build_index(chunks)
-                logger.info("Rebuilt BM25 index on startup successfully!")
-        except Exception as e:
-            logger.error(f"Failed to load repository cache on startup: {e}")
 
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
@@ -151,8 +113,8 @@ def health():
     s = db_stats()
     if settings.LLM_PROVIDER == "gemini":
         model = settings.GEMINI_MODEL
-    elif settings.LLM_PROVIDER == "groq":
-        model = settings.GROQ_MODEL
+    elif settings.LLM_PROVIDER == "openai":
+        model = settings.OPENAI_MODEL
     else:
         model = settings.LOCAL_LLM_MODEL
     return HealthResponse(
@@ -201,9 +163,6 @@ def analyze_repo_endpoint(req: AnalyzeRequest):
 
         # Build BM25 index from same chunks
         bm25_index.build_index(chunks)
-
-        # Save metadata to disk cache to persist restarts
-        save_repo_cache()
 
         return AnalyzeResponse(
             status="success",
@@ -309,12 +268,6 @@ def summarize():
 def clear_index():
     clear()
     query_cache.invalidate()
-    if os.path.exists(CACHE_FILE):
-        try:
-            os.remove(CACHE_FILE)
-            logger.info("Deleted repository metadata disk cache.")
-        except Exception as e:
-            logger.error(f"Failed to delete repo cache: {e}")
     global _repo_files, _repo_meta
     _repo_files = []
     _repo_meta = {}

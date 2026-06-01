@@ -124,6 +124,9 @@ def get_context(query: str, top_k: Optional[int] = None) -> List[Dict]:
 
 
 def format_context(chunks: List[Dict], repo_meta: Optional[Dict] = None) -> str:
+    """Format retrieved chunks into a structured context string for the LLM.
+    Note: repo_meta is accepted for API compatibility but NOT injected here
+    because build_prompt already includes it in the repo_block to avoid duplication."""
     if not chunks:
         return "No relevant code found in the indexed codebase."
 
@@ -133,20 +136,6 @@ def format_context(chunks: List[Dict], repo_meta: Optional[Dict] = None) -> str:
         by_file.setdefault(f, []).append(c)
 
     parts = []
-
-    if repo_meta:
-        meta = []
-        if repo_meta.get("description"):
-            meta.append(f"Project: {repo_meta['description']}")
-        if repo_meta.get("tech_stack"):
-            meta.append(f"Tech: {', '.join(repo_meta['tech_stack'][:8])}")
-        if repo_meta.get("readme_summary"):
-            meta.append(f"README:\n{repo_meta['readme_summary'][:500]}")
-        if repo_meta.get("key_files"):
-            kf = repo_meta["key_files"][:8]
-            meta.append("Key files: " + ", ".join(f"{f['file']} ({f['reason']})" for f in kf))
-        if meta:
-            parts.append("### Repository Intelligence Context\n" + "\n".join(meta))
 
     idx = 1
     for file, file_chunks in by_file.items():
@@ -166,4 +155,5 @@ def format_context(chunks: List[Dict], repo_meta: Optional[Dict] = None) -> str:
         parts.append(f"### {file}\n" + "\n\n".join(file_parts))
 
     return "\n\n---\n\n".join(parts)
+
 

@@ -1,23 +1,27 @@
-# CBQA – AI-Powered Codebase Intelligence Platform
+# CBQA — AI-Powered Codebase Intelligence Platform
 
-CBQA is an intelligent codebase analysis and question-answering platform designed to help developers understand repositories quickly and efficiently. By connecting a GitHub repository or local project, users can explore project architecture, analyze dependencies, trace execution flows, and interact with the codebase through natural language conversations.
-
-## Overview
-
-Understanding a large codebase can be time-consuming, especially when onboarding to a new project. CBQA simplifies this process by combining advanced retrieval techniques with AI-powered reasoning to provide accurate, context-aware insights directly from the source code.
-
-The platform indexes repository content, retrieves the most relevant code sections, and generates structured explanations that help developers navigate complex systems with ease.
+CBQA is an AI-powered repository analysis and question-answering platform that helps developers understand any codebase faster. Simply connect a GitHub repository or local project, and CBQA analyzes the architecture, code structure, dependencies, APIs, and execution flow to provide accurate, context-aware answers.
 
 ## Key Features
 
-* Repository analysis for GitHub and local projects
-* AI-powered codebase question answering
-* Hybrid search using semantic and keyword-based retrieval
-* Intelligent query enhancement for improved context matching
+* AI-powered codebase understanding
+* GitHub repository and local project analysis
+* Hybrid retrieval using semantic search and keyword search
+* Intelligent query expansion for improved answer quality
+* Optional AI reranking for higher retrieval accuracy
 * Interactive repository explorer and architecture visualization
-* Automated repository summaries and technical insights
-* Multi-turn conversational support
-* Support for both cloud-based and local language models
+* Repository summarization and technical insights
+* Multi-turn conversational codebase Q&A
+* OpenAI and local LLM support
+
+## How It Works
+
+1. Repository files are loaded and analyzed.
+2. Source code is intelligently chunked based on language structure.
+3. Embeddings and search indexes are generated.
+4. User questions are enhanced and matched against relevant code.
+5. Retrieved context is ranked and organized.
+6. The AI generates structured, repository-aware answers.
 
 ## Core Technologies
 
@@ -28,59 +32,58 @@ The platform indexes repository content, retrieves the most relevant code sectio
 * ChromaDB
 * BM25 Retrieval
 * Sentence Transformers
+* OpenAI API
+* Ollama
 
 ### AI & Retrieval
 
-* Retrieval-Augmented Generation (RAG)
-* Hybrid Search (Vector + Keyword Retrieval)
+* Hybrid Search (Vector + Keyword)
 * Query Expansion
 * Reciprocal Rank Fusion (RRF)
-* AI-Based Result Reranking
+* AI Reranking
+* Retrieval-Augmented Generation (RAG)
 
-### Language Models
+### Frontend
 
-* OpenAI Models
-* Ollama (Local LLM Support)
+* Interactive Repository Explorer
+* Chat-Based Code Assistant
+* Architecture & Flow Visualization
 
-## Capabilities
+## Available Capabilities
 
-CBQA enables developers to:
-
-* Understand overall project architecture
-* Explore authentication and authorization workflows
-* Trace API endpoints and request flows
+* Explain project architecture
+* Understand authentication flows
+* Trace API endpoints
 * Analyze dependencies and integrations
-* Discover relationships between files and modules
-* Generate repository summaries
-* Follow runtime execution paths
-* Receive repository-specific answers with source references
+* Explore file relationships
+* Summarize repositories
+* Identify execution paths
+* Answer repository-specific questions with source references
 
 ## API Endpoints
 
-| Endpoint          | Description                                |
-| ----------------- | ------------------------------------------ |
-| `/analyze-repo`   | Analyze and index a repository             |
-| `/ask`            | Ask questions about the codebase           |
-| `/repo-structure` | Retrieve repository metadata and structure |
-| `/summarize`      | Generate an AI-powered repository summary  |
-| `/stats`          | View indexing and cache statistics         |
-| `/health`         | Check application status                   |
-| `/clear`          | Clear indexed repository data              |
+| Endpoint          | Purpose                                |
+| ----------------- | -------------------------------------- |
+| `/analyze-repo`   | Analyze and index a repository         |
+| `/ask`            | Ask questions about the codebase       |
+| `/repo-structure` | View repository structure and metadata |
+| `/summarize`      | Generate repository summaries          |
+| `/stats`          | View indexing and cache statistics     |
+| `/health`         | Service health status                  |
+| `/clear`          | Clear indexed data                     |
 
 ## Use Cases
 
-* Developer onboarding
-* Codebase exploration
-* Architecture understanding
-* Documentation assistance
-* Code review and maintenance
+* Understanding unfamiliar codebases
+* Faster developer onboarding
+* Repository documentation assistance
+* Architecture exploration
+* Code review support
 * Technical due diligence
-* Productivity enhancement for development teams
+* Developer productivity enhancement
 
-## Conclusion
+CBQA transforms complex repositories into searchable, explainable knowledge, helping developers spend less time navigating code and more time building software.
 
-CBQA transforms complex repositories into searchable, understandable knowledge. By combining intelligent retrieval with AI-powered reasoning, it enables developers to spend less time navigating code and more time building impactful software.
 
 ## Author
-
-**Shashank H K**
+Shashank H K
