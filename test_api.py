@@ -4,6 +4,11 @@ Run after server is up: python test_api.py
 """
 import sys, requests
 
+# Fix Windows console encoding
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 BASE = "http://localhost:8000"
 OK = "  ✅"; FAIL = "  ❌"
 
@@ -14,7 +19,7 @@ def chk(label, cond, detail=""):
 print("\n══ Health ════════════════════════════════════════")
 r = requests.get(f"{BASE}/health"); d = r.json()
 chk("GET /health → 200", r.status_code == 200)
-chk("version == 5.0.0", d.get("version") == "5.0.0")
+chk("version == 7.0.0", d.get("version") == "7.0.0")
 chk("bm25_ready field present", "bm25_ready" in d)
 chk("hyde_enabled field present", "hyde_enabled" in d)
 print(f"     {d['llm_provider']} / {d['llm_model']}")

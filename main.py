@@ -16,18 +16,25 @@ logging.basicConfig(
 from backend.api.routes import app  # noqa: E402
 
 if __name__ == "__main__":
-    if settings.LLM_PROVIDER == "gemini":
+    if settings.LLM_PROVIDER == "groq":
+        model = settings.GROQ_MODEL
+        fallback = f"fallback: gemini/{settings.GEMINI_MODEL}" if settings.GEMINI_API_KEY else "no fallback"
+    elif settings.LLM_PROVIDER == "gemini":
         model = settings.GEMINI_MODEL
-    elif settings.LLM_PROVIDER == "openai":
-        model = settings.OPENAI_MODEL
+        fallback = ""
     else:
         model = settings.LOCAL_LLM_MODEL
+        fallback = ""
+
+    provider_display = f"{settings.LLM_PROVIDER} / {model}"
+    if fallback:
+        provider_display += f"  ({fallback})"
 
     print(f"""
 +------------------------------------------------------------------+
-|       CBQA - AI Repository Intelligence Platform  V6.0           |
+|       CBQA - AI Repository Intelligence Platform           |
 +------------------------------------------------------------------+
-|  LLM      : {settings.LLM_PROVIDER} / {model:<47}|
+|  LLM      : {provider_display:<52}|
 |  Embed    : {settings.EMBEDDING_MODEL:<52}|
 |  Retrieval: BM25 + Vector (hybrid){' + HyDE' if settings.USE_HYDE else '':<31}|
 |  Rerank   : {'Cohere (enabled)' if settings.USE_RERANK else 'disabled':<52}|

@@ -106,7 +106,7 @@ def walk_codebase(root: str, on_file: Optional[Callable] = None) -> List[Dict]:
             continue
         if not content.strip():
             continue
-        rel = str(fp.relative_to(root_p))
+        rel = fp.relative_to(root_p).as_posix()
         files.append({
             "path": str(fp),
             "relative_path": rel,

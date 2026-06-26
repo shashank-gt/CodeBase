@@ -1,16 +1,19 @@
 import os, logging
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=True)
 
 class Settings:
     # LLM
-    LLM_PROVIDER: str      = os.getenv("LLM_PROVIDER", "gemini")
+    LLM_PROVIDER: str      = os.getenv("LLM_PROVIDER", "groq")
     GEMINI_API_KEY: str    = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str      = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+    GEMINI_MODEL: str      = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    GROQ_API_KEY: str      = os.getenv("GROQ_API_KEY", "")
+    GROQ_MODEL: str        = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    GROQ_TIMEOUT: int      = int(os.getenv("GROQ_TIMEOUT", "60"))
     LOCAL_LLM_URL: str     = os.getenv("LOCAL_LLM_URL", "http://localhost:11434")
     LOCAL_LLM_MODEL: str   = os.getenv("LOCAL_LLM_MODEL", "mistral")
     LLM_TIMEOUT: int       = int(os.getenv("LLM_TIMEOUT", "90"))
-    LLM_MAX_TOKENS: int    = int(os.getenv("LLM_MAX_TOKENS", "2048"))
+    LLM_MAX_TOKENS: int    = int(os.getenv("LLM_MAX_TOKENS", "4096"))
     LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.1"))
     
     # Embeddings
@@ -46,9 +49,10 @@ class Settings:
     LOG_LEVEL: str         = os.getenv("LOG_LEVEL", "INFO")
 
     def validate(self):
-        if self.LLM_PROVIDER not in ("gemini", "local"):
-            # If user had 'openai' set, force them to gemini
-            self.LLM_PROVIDER = "gemini"
+        if self.LLM_PROVIDER not in ("groq", "gemini", "local"):
+            self.LLM_PROVIDER = "groq"
+        if self.LLM_PROVIDER == "groq" and not self.GROQ_API_KEY:
+            logging.getLogger(__name__).warning("GROQ_API_KEY not set — will fall back to Gemini")
         if self.LLM_PROVIDER == "gemini" and not self.GEMINI_API_KEY:
             logging.getLogger(__name__).warning("GEMINI_API_KEY not set in .env")
         return self
