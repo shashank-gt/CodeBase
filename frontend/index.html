@@ -2311,7 +2311,7 @@
       { label: 'Browser UI', cls: 'layer-user', icon: '🌐' },
       { label: 'FastAPI /analyze-repo', cls: 'layer-backend', icon: '📡' },
       { label: 'Loader + Chunker', cls: 'layer-ai', icon: '⚙️' },
-      { label: 'ChromaDB + BM25', cls: 'layer-storage', icon: '🗄' },
+      { label: 'FAISS + BM25', cls: 'layer-storage', icon: '🗄' },
       { label: 'FastAPI /ask', cls: 'layer-backend', icon: '📡' },
       { label: 'Hybrid Retriever', cls: 'layer-retrieval', icon: '🔍' },
       { label: 'LLM + Formatter', cls: 'layer-ai', icon: '🧠' },
@@ -2419,97 +2419,120 @@
       const files = Object.keys(graph);
       if (files.length === 0) return null;
 
-      const dirDeps = {};
-      const dirNames = new Set();
-
       function getDir(filePath) {
         const parts = filePath.split('/');
-        if (parts.length > 1) {
-          return parts.slice(0, -1).join('/');
-        }
-        return '(root)';
+        return parts.length > 1 ? parts.slice(0, -1).join('/') : '(root)';
       }
 
-      function resolveImportToDir(imp, currentFile) {
+      function resolveImportToFile(imp, currentFile) {
+        let targetBase = '';
         if (imp.startsWith('.')) {
           const currentDir = getDir(currentFile);
-          const parts = currentDir === '(root)' ? [] : currentDir.split('/');
+          const dirParts = currentDir === '(root)' ? [] : currentDir.split('/');
           const impParts = imp.split('/');
           for (const p of impParts) {
             if (p === '..') {
-              parts.pop();
+              dirParts.pop();
             } else if (p !== '.' && p !== '') {
-              parts.push(p);
+              dirParts.push(p);
             }
           }
-          return parts.length > 0 ? parts.join('/') : '(root)';
+          targetBase = dirParts.join('/');
+        } else {
+          targetBase = imp.replace(/\./g, '/');
         }
 
-        const impPath = imp.replace(/\./g, '/');
-        let matchedDir = null;
-        const dirs = Object.keys(meta.directory_purposes || {});
-        for (const d of dirs) {
-          if (impPath.startsWith(d)) {
-            if (!matchedDir || d.length > matchedDir.length) {
-              matchedDir = d;
-            }
+        for (const f of files) {
+          const fWithoutExt = f.substring(0, f.lastIndexOf('.')) || f;
+          if (fWithoutExt === targetBase || f.startsWith(targetBase + '/')) {
+            return f;
           }
         }
-        if (matchedDir) return matchedDir;
 
-        const firstPart = imp.split('.')[0];
-        if (dirs.includes(firstPart)) {
-          return firstPart;
+        const nameOnly = targetBase.split('/').pop();
+        for (const f of files) {
+          const fName = f.split('/').pop();
+          const fNameWithoutExt = fName.substring(0, fName.lastIndexOf('.')) || fName;
+          if (fNameWithoutExt === nameOnly) {
+            return f;
+          }
         }
         return null;
       }
 
-      for (const [file, imports] of Object.entries(graph)) {
-        const srcDir = getDir(file);
-        dirNames.add(srcDir);
+      const fileNodes = new Set();
+      const dirGroups = {};
+      const edges = [];
+
+      for (const [srcFile, imports] of Object.entries(graph)) {
+        fileNodes.add(srcFile);
+        const srcDir = getDir(srcFile);
+        if (!dirGroups[srcDir]) dirGroups[srcDir] = new Set();
+        dirGroups[srcDir].add(srcFile);
 
         for (const imp of imports) {
-          const destDir = resolveImportToDir(imp, file);
-          if (destDir && destDir !== srcDir) {
-            dirNames.add(destDir);
-            if (!dirDeps[srcDir]) dirDeps[srcDir] = new Set();
-            dirDeps[srcDir].add(destDir);
+          const destFile = resolveImportToFile(imp, srcFile);
+          if (destFile && destFile !== srcFile) {
+            fileNodes.add(destFile);
+            const destDir = getDir(destFile);
+            if (!dirGroups[destDir]) dirGroups[destDir] = new Set();
+            dirGroups[destDir].add(destFile);
+
+            edges.push({ src: srcFile, dest: destFile });
           }
         }
       }
 
-      const depEntries = Object.entries(dirDeps);
-      if (depEntries.length === 0) return null;
+      if (edges.length === 0 && fileNodes.size === 0) return null;
 
-      let m = 'flowchart TD\n';
+      let m = 'flowchart TB\n';
       m += '  classDef default fill:#0e1525,stroke:#1c2d48,stroke-width:1px,color:#94a3b8;\n';
-      m += '  classDef highlight fill:rgba(56, 189, 248, 0.06),stroke:#38bdf8,stroke-width:1.5px,color:#38bdf8;\n';
+      m += '  classDef fileNode fill:#1e293b,stroke:#475569,stroke-width:1px,color:#f1f5f9;\n';
+      m += '  classDef entryNode fill:#112338,stroke:#0ea5e9,stroke-width:1.5px,color:#38bdf8;\n';
+      m += '  classDef apiNode fill:#0f282e,stroke:#10b981,stroke-width:1.5px,color:#34d399;\n';
 
       const idMap = {};
       let idCounter = 0;
-      function getId(dir) {
-        if (!idMap[dir]) {
-          idMap[dir] = 'd' + (idCounter++);
+      function getNodeId(file) {
+        if (!idMap[file]) {
+          idMap[file] = 'f' + (idCounter++);
         }
-        return idMap[dir];
+        return idMap[file];
       }
 
-      for (const d of dirNames) {
-        const id = getId(d);
-        const purpose = meta.directory_purposes && meta.directory_purposes[d] ? ` (${meta.directory_purposes[d]})` : '';
-        m += `  ${id}["${d}${purpose}"]\n`;
-        if (['backend', 'frontend', 'rag', 'ingestion', 'api'].some(k => d.includes(k))) {
-          m += `  class ${id} highlight;\n`;
+      let subIdx = 0;
+      for (const [dir, dirFiles] of Object.entries(dirGroups)) {
+        const purpose = meta.directory_purposes && meta.directory_purposes[dir] ? ` (${meta.directory_purposes[dir]})` : '';
+        m += `  subgraph sub_${subIdx++} ["${dir}${purpose}"]\n`;
+        for (const file of dirFiles) {
+          const id = getNodeId(file);
+          const filename = file.split('/').pop();
+          m += `    ${id}["${filename}"]\n`;
+        }
+        m += '  end\n';
+      }
+
+      for (const file of fileNodes) {
+        const id = getNodeId(file);
+        const name = file.toLowerCase();
+        if (name.includes('main.py') || name.includes('app.py') || name.includes('server.py')) {
+          m += `  class ${id} entryNode;\n`;
+        } else if (name.includes('routes.py') || name.includes('api/') || name.includes('endpoints')) {
+          m += `  class ${id} apiNode;\n`;
+        } else {
+          m += `  class ${id} fileNode;\n`;
         }
       }
 
-      let count = 0;
-      for (const [src, dests] of depEntries) {
-        const srcId = getId(src);
-        for (const dest of dests) {
-          if (count++ < 30) {
-            m += `  ${srcId} --> ${getId(dest)}\n`;
-          }
+      let edgeCount = 0;
+      const seenEdges = new Set();
+      for (const edge of edges) {
+        const key = `${edge.src}->${edge.dest}`;
+        if (seenEdges.has(key)) continue;
+        seenEdges.add(key);
+
+        if (edgeCount++ < 45) {
+          m += `  ${getNodeId(edge.src)} --> ${getNodeId(edge.dest)}\n`;
         }
       }
 
@@ -2522,29 +2545,62 @@
 
       let m = 'flowchart BT\n';
       m += '  classDef default fill:#0e1525,stroke:#1c2d48,stroke-width:1px,color:#94a3b8;\n';
-      m += '  classDef classNode fill:rgba(125, 211, 252, 0.06),stroke:#7dd3fc,stroke-width:1px,color:#7dd3fc;\n';
+      m += '  classDef classNode fill:#17253a,stroke:#7dd3fc,stroke-width:1.5px,color:#7dd3fc;\n';
+      m += '  classDef extNode fill:#1e293b,stroke:#475569,stroke-width:1px,color:#94a3b8;\n';
 
-      const classNames = new Set(classes.map(c => c.name));
-      const links = [];
+      const fileGroups = {};
+      const classMap = {};
+      const allClassNames = new Set();
+
+      const classIdMap = {};
+      let classIdCounter = 0;
+      function getClassId(name) {
+        if (!classIdMap[name]) {
+          classIdMap[name] = 'c' + (classIdCounter++);
+        }
+        return classIdMap[name];
+      }
 
       for (const c of classes) {
-        m += `  c_${c.name}["${c.name}"]\n`;
-        m += `  class c_${c.name} classNode;\n`;
+        classMap[c.name] = c;
+        allClassNames.add(c.name);
+        const file = c.file || 'unknown';
+        if (!fileGroups[file]) fileGroups[file] = [];
+        fileGroups[file].push(c);
+      }
+
+      let subIdx = 0;
+      for (const [file, fileClasses] of Object.entries(fileGroups)) {
+        const displayFile = file.split('/').pop();
+        m += `  subgraph cls_sub_${subIdx++} ["${displayFile}"]\n`;
+        for (const c of fileClasses) {
+          const id = getClassId(c.name);
+          m += `    ${id}["class ${c.name}"]\n`;
+          m += `    class ${id} classNode;\n`;
+        }
+        m += '  end\n';
+      }
+
+      const links = [];
+      const addedExt = new Set();
+      for (const c of classes) {
         for (const b of c.bases) {
           if (b && b !== 'object') {
             links.push({ from: c.name, to: b });
-            if (!classNames.has(b)) {
-              m += `  c_${b}["${b}"]\n`;
-              classNames.add(b);
+            if (!allClassNames.has(b) && !addedExt.has(b)) {
+              const id = getClassId(b);
+              m += `  ${id}["${b} (external)"]\n`;
+              m += `  class ${id} extNode;\n`;
+              addedExt.add(b);
             }
           }
         }
       }
 
-      if (links.length === 0) return null;
+      if (links.length === 0 && classes.length === 0) return null;
 
       for (const link of links) {
-        m += `  c_${link.from} --> c_${link.to}\n`;
+        m += `  ${getClassId(link.from)} --> ${getClassId(link.to)}\n`;
       }
 
       return m;

@@ -8,8 +8,8 @@ from .embeddings import embed_texts, embed_query
 logger = logging.getLogger(__name__)
 
 # Files for FAISS index and metadata persistence
-INDEX_FILE = os.path.join(settings.CHROMA_DIR, "faiss_index.bin")
-META_FILE = os.path.join(settings.CHROMA_DIR, "faiss_meta.pkl")
+INDEX_FILE = os.path.join(settings.FAISS_DIR, "faiss_index.bin")
+META_FILE = os.path.join(settings.FAISS_DIR, "faiss_meta.pkl")
 
 # In-memory caches for fast access
 _index: Optional[faiss.IndexFlatIP] = None
@@ -24,7 +24,7 @@ def _normalize_vectors(vectors: np.ndarray) -> np.ndarray:
 def get_index_and_meta():
     global _index, _metadata
     if _index is None:
-        os.makedirs(settings.CHROMA_DIR, exist_ok=True)
+        os.makedirs(settings.FAISS_DIR, exist_ok=True)
         if os.path.exists(INDEX_FILE) and os.path.exists(META_FILE):
             try:
                 _index = faiss.read_index(INDEX_FILE)
@@ -75,7 +75,7 @@ def store_chunks(chunks: List[Dict]) -> int:
         
     # 5. Persist to disk
     try:
-        os.makedirs(settings.CHROMA_DIR, exist_ok=True)
+        os.makedirs(settings.FAISS_DIR, exist_ok=True)
         faiss.write_index(index, INDEX_FILE)
         with open(META_FILE, "wb") as f:
             pickle.dump(metadata, f)

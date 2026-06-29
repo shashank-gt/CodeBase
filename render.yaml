@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: cbqa-service
+    env: python
+    region: ohio # Default to ohio or any region you prefer
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: FAISS_DIR
+        value: /data/faiss_db
+      - key: LLM_PROVIDER
+        value: groq
+      # The following secrets should be filled in via the Render Dashboard
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: COHERE_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+    disk:
+      name: faiss-data
+      mountPath: /data
+      sizeGB: 1

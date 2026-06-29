@@ -3,7 +3,7 @@ __pycache__/
 *.pyc
 .venv/
 venv/
-chroma_db/
+faiss_db/
 tmp_repos/
 *.egg-info/
 dist/

@@ -39,8 +39,8 @@ _repo_meta:  Dict = {}
 
 
 def _save_persisted_state():
-    meta_path = os.path.join(settings.CHROMA_DIR, "repo_meta.pkl")
-    files_path = os.path.join(settings.CHROMA_DIR, "repo_files.pkl")
+    meta_path = os.path.join(settings.FAISS_DIR, "repo_meta.pkl")
+    files_path = os.path.join(settings.FAISS_DIR, "repo_files.pkl")
     try:
         import pickle
         with open(meta_path, "wb") as f:
@@ -53,8 +53,8 @@ def _save_persisted_state():
 
 
 def _clear_persisted_state():
-    meta_path = os.path.join(settings.CHROMA_DIR, "repo_meta.pkl")
-    files_path = os.path.join(settings.CHROMA_DIR, "repo_files.pkl")
+    meta_path = os.path.join(settings.FAISS_DIR, "repo_meta.pkl")
+    files_path = os.path.join(settings.FAISS_DIR, "repo_files.pkl")
     for p in (meta_path, files_path):
         if os.path.exists(p):
             try:
@@ -67,8 +67,8 @@ def _clear_persisted_state():
 @app.on_event("startup")
 def startup_event():
     global _repo_files, _repo_meta
-    meta_path = os.path.join(settings.CHROMA_DIR, "repo_meta.pkl")
-    files_path = os.path.join(settings.CHROMA_DIR, "repo_files.pkl")
+    meta_path = os.path.join(settings.FAISS_DIR, "repo_meta.pkl")
+    files_path = os.path.join(settings.FAISS_DIR, "repo_files.pkl")
     if os.path.exists(meta_path) and os.path.exists(files_path):
         try:
             import pickle

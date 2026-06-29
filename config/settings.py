@@ -20,7 +20,7 @@ class Settings:
     EMBEDDING_MODEL: str   = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
     
     # Vector DB
-    CHROMA_DIR: str        = os.getenv("CHROMA_DIR", "./chroma_db")
+    FAISS_DIR: str        = os.getenv("FAISS_DIR", "./faiss_db")
     
     # RAG
     TOP_K: int             = int(os.getenv("TOP_K", "20"))
