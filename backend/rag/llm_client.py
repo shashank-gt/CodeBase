@@ -37,13 +37,12 @@ def _estimate_tokens(messages: List[Dict]) -> int:
 def _trim_context_if_needed(messages: List[Dict], provider: str = None) -> List[Dict]:
     """Trim the retrieved code context if the entire messages payload exceeds token limits."""
     if provider == "groq":
-        # Groq has a 12000 token limit per request for llama-3.3-70b-versatile
-        # Request total = input tokens + max_tokens
-        max_context_tokens = 11000 - settings.LLM_MAX_TOKENS
+        # Keep input context lean to conserve tokens and prevent TPM throttle
+        max_context_tokens = 5000
     elif provider == "gemini":
-        max_context_tokens = 250000  # Gemini-2.5-flash context window is 1M
+        max_context_tokens = 30000
     else:
-        max_context_tokens = 12000 - settings.LLM_MAX_TOKENS
+        max_context_tokens = 4000
 
     est = _estimate_tokens(messages)
     if est <= max_context_tokens:

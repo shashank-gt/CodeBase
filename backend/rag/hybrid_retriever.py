@@ -17,7 +17,7 @@ from . import bm25_index as bm25
 
 logger = logging.getLogger(__name__)
 
-MAX_CHUNKS_PER_FILE = 3  # Force cross-file diversity
+MAX_CHUNKS_PER_FILE = 2  # Cap chunks per file to force diversity and minimize token usage
 
 
 # ── Query intent classification ──────────────────────────────────────────────
@@ -37,8 +37,7 @@ def _is_simple_lookup(query: str) -> bool:
 # ── HyDE: Hypothetical Document Embedding ────────────────────────────────────
 
 def _hyde_expand(query: str) -> str:
-    """Generate a hypothetical code snippet/explanation for better semantic recall.
-    Uses a focused prompt optimized for code retrieval."""
+    """Generate a compact hypothetical code snippet for semantic recall."""
     if not settings.USE_HYDE:
         return query
     if _is_simple_lookup(query):
@@ -48,17 +47,14 @@ def _hyde_expand(query: str) -> str:
         from .llm_client import call_llm
         messages = [
             {"role": "system", "content": (
-                "You are a code retrieval assistant. Given a developer question about a codebase, "
-                "write a SHORT hypothetical code snippet or technical explanation (3-5 lines max) "
-                "that would answer the question. Include likely function names, variable names, "
-                "class names, file paths, and technical terms from the actual source code. "
-                "Be concrete and specific. Output ONLY the code/text — no explanations."
+                "Write 2-3 short lines of hypothetical code/identifiers matching the developer's question. "
+                "Output ONLY the snippet — no text, no explanations."
             )},
             {"role": "user", "content": query},
         ]
         hyp = call_llm(messages)
-        # Combine original query with hypothetical for richer embedding
-        expanded = f"{query}\n\n{hyp[:350]}"
+        # Combine original query with compact hypothetical snippet
+        expanded = f"{query}\n{hyp[:200]}"
         logger.debug("HyDE expansion applied")
         return expanded
     except Exception as e:
@@ -201,7 +197,7 @@ def get_context(query: str, top_k: Optional[int] = None) -> List[Dict]:
 # ── Context formatting ────────────────────────────────────────────────────────
 
 def format_context(chunks: List[Dict], repo_meta: Optional[Dict] = None) -> str:
-    """Format retrieved chunks into a structured context string for the LLM."""
+    """Format retrieved chunks into a concise, file-grouped context string for the LLM."""
     if not chunks:
         return "No relevant code found in the indexed codebase."
 
@@ -212,22 +208,6 @@ def format_context(chunks: List[Dict], repo_meta: Optional[Dict] = None) -> str:
         by_file.setdefault(f, []).append(c)
 
     parts = []
-
-    # Repo metadata block (compact)
-    if repo_meta:
-        meta_lines = []
-        if repo_meta.get("description"):
-            meta_lines.append(f"Project: {repo_meta['description']}")
-        if repo_meta.get("tech_stack"):
-            meta_lines.append(f"Tech: {', '.join(repo_meta['tech_stack'][:8])}")
-        if repo_meta.get("entry_points"):
-            meta_lines.append("Entry points: " + ", ".join(repo_meta["entry_points"][:4]))
-        if repo_meta.get("design_patterns"):
-            meta_lines.append("Patterns: " + ", ".join(repo_meta["design_patterns"][:4]))
-        if meta_lines:
-            parts.append("### Repository Context\n" + "\n".join(meta_lines))
-
-    # File-grouped code chunks
     idx = 1
     for file, file_chunks in by_file.items():
         file_role = ""
@@ -253,9 +233,14 @@ def format_context(chunks: List[Dict], repo_meta: Optional[Dict] = None) -> str:
                 hdr += f"  ({ctype}: {name})"
             hdr += f"  relevance={score:.0%}"
             if doc:
-                hdr += f"\n    # {doc[:150]}"
+                hdr += f"\n    # {doc[:100]}"
 
-            chunk_parts.append(f"{hdr}\n```{lang}\n{c['text'].strip()}\n```")
+            chunk_text = c['text'].strip()
+            # Cap individual chunk text to 1000 characters to prevent token ballooning
+            if len(chunk_text) > 1000:
+                chunk_text = chunk_text[:950] + "\n// ... [truncated for brevity] ..."
+
+            chunk_parts.append(f"{hdr}\n```{lang}\n{chunk_text}\n```")
             idx += 1
 
         parts.append(f"### {file}{file_role}\n" + "\n\n".join(chunk_parts))

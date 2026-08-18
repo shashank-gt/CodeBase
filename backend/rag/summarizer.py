@@ -93,13 +93,12 @@ def summarize_repo(files: List[Dict]) -> str:
 
     for dir_name, dir_files in sorted(by_dir.items()):
         manifest_parts.append(f"\n### Directory: {dir_name}")
-        for f in dir_files[:10]:
-            # Include more meaningful lines for deeper understanding
-            content_lines = [l for l in f["content"].splitlines() if l.strip()][:12]
+        for f in dir_files[:6]:
+            content_lines = [l for l in f["content"].splitlines() if l.strip()][:7]
             preview = "\n".join(content_lines)
-            manifest_parts.append(f"**{f['relative_path']}** ({f['extension']}, {len(f['content'])} bytes)\n```\n{preview}\n```")
+            manifest_parts.append(f"**{f['relative_path']}** ({f['extension']})\n```\n{preview}\n```")
 
-    manifest = "\n\n".join(manifest_parts[:120])
+    manifest = "\n\n".join(manifest_parts[:35])
 
     try:
         return call_llm([

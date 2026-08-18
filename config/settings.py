@@ -13,7 +13,7 @@ class Settings:
     LOCAL_LLM_URL: str     = os.getenv("LOCAL_LLM_URL", "http://localhost:11434")
     LOCAL_LLM_MODEL: str   = os.getenv("LOCAL_LLM_MODEL", "mistral")
     LLM_TIMEOUT: int       = int(os.getenv("LLM_TIMEOUT", "90"))
-    LLM_MAX_TOKENS: int    = int(os.getenv("LLM_MAX_TOKENS", "4096"))
+    LLM_MAX_TOKENS: int    = int(os.getenv("LLM_MAX_TOKENS", "2048"))
     LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.1"))
     
     # Embeddings
@@ -23,8 +23,8 @@ class Settings:
     FAISS_DIR: str        = os.getenv("FAISS_DIR", "./faiss_db")
     
     # RAG
-    TOP_K: int             = int(os.getenv("TOP_K", "20"))
-    RERANK_TOP_K: int      = int(os.getenv("RERANK_TOP_K", "8"))
+    TOP_K: int             = int(os.getenv("TOP_K", "12"))
+    RERANK_TOP_K: int      = int(os.getenv("RERANK_TOP_K", "6"))
     CHUNK_SIZE: int        = int(os.getenv("CHUNK_SIZE", "400"))
     CHUNK_OVERLAP: int     = int(os.getenv("CHUNK_OVERLAP", "80"))
     MIN_CHUNK_CHARS: int   = int(os.getenv("MIN_CHUNK_CHARS", "50"))
