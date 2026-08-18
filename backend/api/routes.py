@@ -1,5 +1,5 @@
 """
-FastAPI routes for CBQA V7 — AI Repository Intelligence Platform.
+FastAPI routes for CBQA V8 — AI Repository Intelligence Platform.
 Endpoints: /analyze-repo, /ask, /repo-structure, /summarize, /health, /clear, /file-content
 Frontend served at root (/).
 """
@@ -24,7 +24,7 @@ from backend.rag import bm25_index
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="CBQA V7", description="AI Repository Intelligence Platform", version="7.0.0")
+app = FastAPI(title="CBQA V8", description="AI Repository Intelligence Platform — Groq Primary, Gemini Fallback", version="8.0.0")
 app.add_middleware(CORSMiddleware,
     allow_origins=["*"] if settings.CORS_ORIGINS == "*" else settings.CORS_ORIGINS.split(","),
     allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -171,7 +171,7 @@ def health():
     else:
         model = settings.LOCAL_LLM_MODEL
     return HealthResponse(
-        status="ok", version="7.0.0",
+        status="ok", version="8.0.0",
         llm_provider=active, llm_model=model,
         embedding_model=settings.EMBEDDING_MODEL,
         vector_db_chunks=s["total_chunks"],

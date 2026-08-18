@@ -1,11 +1,36 @@
-.env
+# ── Python ──
 __pycache__/
-*.pyc
-.venv/
-venv/
-faiss_db/
-tmp_repos/
+*.py[cod]
+*.pyo
 *.egg-info/
+*.egg
 dist/
 build/
+*.whl
+
+# ── Environment ──
+.env
+.venv/
+venv/
+env/
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Data (local only) ──
+faiss_db/
+tmp_repos/
+chroma_db/
+
+# ── OS ──
 .DS_Store
+Thumbs.db
+
+# ── Debug / Test artifacts (not for production) ──
+scratch/
+test_api.py
+test_imports.py

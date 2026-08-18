@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     print(f"""
 +------------------------------------------------------------------+
-|       CBQA - AI Repository Intelligence Platform           |
+|   CBQA V8 — AI Repository Intelligence Platform (Production) |
 +------------------------------------------------------------------+
 |  LLM      : {provider_display:<52}|
 |  Embed    : {settings.EMBEDDING_MODEL:<52}|
